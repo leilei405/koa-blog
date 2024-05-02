@@ -7,6 +7,10 @@ const bodyparser = require("koa-bodyparser");
 const logger = require("koa-logger");
 const session = require("koa-generic-session");
 const redisStore = require("koa-redis");
+const path = require("path");
+const fs = require("fs");
+const morgan = require("koa-morgan");
+
 const { REDIS_CONFIG } = require("./config/db");
 
 const index = require("./routes/index");
@@ -40,6 +44,30 @@ app.use(async (ctx, next) => {
   const ms = new Date() - start;
   console.log(`${ctx.method} ${ctx.url} - ${ms}ms`);
 });
+
+// morgan 日志
+const ENV = process.env.NODE_ENV;
+if (ENV !== "production") {
+  // 开发环境
+  app.use(morgan("dev"));
+} else {
+  // 线上环境
+  app.use(morgan("combined"));
+  // 创建日志文件
+  const logStream = fs.createWriteStream(
+    path.join(__dirname, "logs", "access.log"),
+    {
+      flags: "a", // 追加模式
+    }
+  );
+
+  app.use(
+    morgan("combined", {
+      stream: logStream,
+    })
+  );
+}
+
 // session 配置
 app.keys = ["some_secret_Luck_123"];
 app.use(
